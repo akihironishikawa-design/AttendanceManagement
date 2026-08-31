@@ -1,0 +1,67 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>TakaneAttendance.Wpf</RootNamespace>
+    <AssemblyName>勤怠突合PoC</AssemblyName>
+    <ApplicationTitle>勤怠突合 PoC</ApplicationTitle>
+    <!-- exe・タイトルバー・タスクバーのアイコン(tools\make-icon.ps1 で作り直せる) -->
+    <ApplicationIcon>app.ico</ApplicationIcon>
+    <!-- Windows 以外の環境でもビルド検証できるようにする(CI 用) -->
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <SatelliteResourceLanguages>ja;en</SatelliteResourceLanguages>
+    <!--
+      単一ファイルで発行するとき、WPF のネイティブDLL(PresentationNative_cor3.dll・
+      wpfgfx_cor3.dll など)も exe の中に入れる。
+      これが false だと exe の横にDLLが残り、exe だけを別のフォルダへコピーすると
+      起動時に DllNotFoundException で落ちる(画面が出ず、何も反応しない)。
+    -->
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <!--
+      単一ファイルの中身を圧縮する。自己完結(.NET 同梱)のため、これが無いと
+      exe が 171MB になる。圧縮すると 76MB(起動時に展開するぶん初回起動が少し遅い)。
+      納品済みの exe と同じ条件にするため、発行コマンド側ではなくここで指定している。
+    -->
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <!-- 発行物に .pdb を入れない(配布物を小さくする) -->
+    <DebugType>none</DebugType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TakaneAttendance.Core\TakaneAttendance.Core.csproj" />
+  </ItemGroup>
+
+  <!--
+    SkiaSharp のネイティブ デバッグシンボル(libSkiaSharp.pdb・約80MB)を発行物から外す。
+    NuGet の runtimes\win-x64\native に .dll と一緒に入っているため、何もしないと
+    exe の横に置かれてしまう(exe の中には入らない)。客先では使わないため取り除く。
+    以前は発行のたびに手で消していた手順を、ここで自動にしている。
+  -->
+  <Target Name="RemoveNativePdbFromPublish" AfterTargets="ComputeResolvedFilesToPublishList">
+    <ItemGroup>
+      <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)"
+                             Condition="'%(Extension)' == '.pdb'" />
+    </ItemGroup>
+  </Target>
+
+  <!-- マスタXML・帳票テンプレートを出力フォルダへ配置する -->
+  <ItemGroup>
+    <!-- *.sample.xml は実データを持たない見本のため、出力には配置しない -->
+    <None Include="..\..\masters\*.xml" Exclude="..\..\masters\*.sample.xml"
+          Link="masters\%(Filename)%(Extension)">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\..\templates\*.xls*" Link="templates\%(Filename)%(Extension)">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <!-- 申請書の様式。画面では指定させず、ここに同梱したものを使う -->
+    <None Include="..\..\templates\申請書\*.xls*" Link="templates\申請書\%(Filename)%(Extension)">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>

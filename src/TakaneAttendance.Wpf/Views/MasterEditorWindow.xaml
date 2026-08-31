@@ -1,0 +1,387 @@
+﻿<Window x:Class="TakaneAttendance.Wpf.Views.MasterEditorWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:TakaneAttendance.Wpf.ViewModels"
+        Title="マスタの編集" Width="920" Height="660"
+        WindowStartupLocation="CenterOwner" Background="#EEF2F6"
+        FontFamily="Yu Gothic UI, Meiryo UI" FontSize="12"
+        Closing="Window_Closing">
+
+  <Window.Resources>
+
+    <!-- 各タブの説明文 -->
+    <Style x:Key="TabNote" TargetType="TextBlock">
+      <Setter Property="Foreground" Value="{StaticResource SubBrush}"/>
+      <Setter Property="FontSize" Value="11"/>
+      <Setter Property="TextWrapping" Value="Wrap"/>
+      <Setter Property="Margin" Value="0,0,0,8"/>
+    </Style>
+
+    <!-- 一覧の見出し -->
+    <Style x:Key="GridHeader" TargetType="DataGridColumnHeader">
+      <Setter Property="Background" Value="{StaticResource Blue700}"/>
+      <Setter Property="Foreground" Value="White"/>
+      <Setter Property="FontWeight" Value="Bold"/>
+      <Setter Property="Padding" Value="8,6"/>
+      <Setter Property="BorderBrush" Value="#4A7FB5"/>
+      <Setter Property="BorderThickness" Value="0,0,1,0"/>
+    </Style>
+
+    <Style x:Key="MasterGrid" TargetType="DataGrid">
+      <Setter Property="AutoGenerateColumns" Value="False"/>
+      <Setter Property="CanUserAddRows" Value="False"/>
+      <Setter Property="CanUserDeleteRows" Value="False"/>
+      <Setter Property="CanUserReorderColumns" Value="False"/>
+      <Setter Property="SelectionMode" Value="Single"/>
+      <Setter Property="SelectionUnit" Value="FullRow"/>
+      <Setter Property="GridLinesVisibility" Value="All"/>
+      <Setter Property="HeadersVisibility" Value="All"/>
+      <Setter Property="RowHeaderWidth" Value="26"/>
+      <Setter Property="Background" Value="White"/>
+      <Setter Property="BorderBrush" Value="{StaticResource LineBrush}"/>
+      <Setter Property="HorizontalGridLinesBrush" Value="{StaticResource LineBrush}"/>
+      <Setter Property="VerticalGridLinesBrush" Value="{StaticResource LineBrush}"/>
+      <Setter Property="ColumnHeaderStyle" Value="{StaticResource GridHeader}"/>
+    </Style>
+
+  </Window.Resources>
+
+  <DockPanel>
+
+    <!-- ================= 見出し ================= -->
+    <Border DockPanel.Dock="Top" Background="White" BorderBrush="{StaticResource LineBrush}"
+            BorderThickness="0,0,0,1" Padding="16,10">
+      <StackPanel>
+        <TextBlock Text="マスタの編集" Style="{StaticResource SectionTitle}"/>
+        <TextBlock Foreground="{StaticResource SubBrush}" FontSize="11" TextWrapping="Wrap"
+                   Text="お客様の運用に合わせて設定するマスタです。「保存」を押すと masters フォルダのXMLに書き込み、次の「突合実行」から反映されます。"/>
+        <TextBlock Text="{Binding Directory}" Foreground="{StaticResource SubBrush}" FontSize="11"
+                   Margin="0,3,0,0" TextTrimming="CharacterEllipsis"/>
+      </StackPanel>
+    </Border>
+
+    <!-- ================= 操作 ================= -->
+    <Border DockPanel.Dock="Bottom" Background="White" BorderBrush="{StaticResource LineBrush}"
+            BorderThickness="0,1,0,0" Padding="16,10">
+      <DockPanel>
+        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+          <Button Content="読み直す" Style="{StaticResource SubButton}" Command="{Binding ReloadCommand}"
+                  Click="Reload_Click" MinWidth="90"
+                  ToolTip="保存していない編集内容を捨てて、XMLの内容に戻します。"/>
+          <Button Content="保存" Style="{StaticResource PrimaryButton}" Command="{Binding SaveCommand}"
+                  Click="Save_Click" MinWidth="100" Margin="10,0,6,0"/>
+          <Button Content="閉じる" Style="{StaticResource SubButton}" Click="Close_Click" MinWidth="90"/>
+        </StackPanel>
+        <TextBlock Text="{Binding StatusText}" Foreground="{StaticResource SubBrush}"
+                   TextWrapping="Wrap" Margin="0,0,12,0"/>
+      </DockPanel>
+    </Border>
+
+    <!-- ================= 入力の誤り ================= -->
+    <Border DockPanel.Dock="Bottom" Background="{StaticResource ErrorBg}" BorderBrush="#E6C0BA"
+            BorderThickness="0,1,0,0" Padding="16,8" MaxHeight="140"
+            Visibility="{Binding HasError, Converter={StaticResource BoolToVisibility}}">
+      <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <TextBlock Text="{Binding ErrorText}" TextWrapping="Wrap" Foreground="#8E332A"/>
+      </ScrollViewer>
+    </Border>
+
+    <!-- ================= マスタ ================= -->
+    <TabControl Margin="16,12,16,12" Background="White" BorderBrush="{StaticResource LineBrush}">
+
+      <!-- 社員名 別名マスタ -->
+      <TabItem Header="社員名 別名">
+        <DockPanel Margin="10">
+          <StackPanel DockPanel.Dock="Top">
+            <TextBlock Style="{StaticResource TabNote}"
+                       Text="シフト表の「平山 部長」のような表記を、打刻データの正式氏名「平山 恵亮」に対応づけます。空白の有無だけの違いは自動で解決するため、登録は不要です。「正式氏名」を空欄にした行は、その表記自体を正式氏名として登録します。"/>
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+              <Button Content="行を追加" Style="{StaticResource SubButton}" Command="{Binding AddAliasCommand}"/>
+              <Button Content="選択行を削除" Style="{StaticResource SubButton}" Command="{Binding RemoveAliasCommand}" Margin="8,0,0,0"/>
+              <Button Content="未解決の氏名を取り込む" Style="{StaticResource SubButton}"
+                      Command="{Binding ImportUnresolvedCommand}" Margin="16,0,0,0"
+                      ToolTip="直前の突合で「氏名未解決」だった氏名を行として追加します。正式氏名は手で入力してください。"/>
+            </StackPanel>
+          </StackPanel>
+
+          <DataGrid ItemsSource="{Binding Aliases}" SelectedItem="{Binding SelectedAlias}"
+                    Style="{StaticResource MasterGrid}">
+            <DataGrid.Columns>
+              <DataGridTextColumn Header="表記(シフト表など)" Binding="{Binding Source}" Width="200"/>
+              <DataGridTextColumn Header="正式氏名(打刻データ)" Binding="{Binding Canonical}" Width="200"/>
+              <DataGridTextColumn Header="備考" Binding="{Binding Note}" Width="*"/>
+            </DataGrid.Columns>
+          </DataGrid>
+        </DockPanel>
+      </TabItem>
+
+      <!-- 勤務区分マスタ -->
+      <TabItem Header="勤務区分">
+        <DockPanel Margin="10">
+          <StackPanel DockPanel.Dock="Top">
+            <TextBlock Style="{StaticResource TabNote}"
+                       Text="シフト表のセルに文字で入る値(公・有・欠 など)の意味を決めます。時刻のセルは通常勤務として扱うため、登録は不要です。備考はセル編集の区分選択に表示されます。公・有・欠・半・出張・本部 はアプリの既定値のため、削除しても次回は既定の意味で表示されます。"/>
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+              <Button Content="行を追加" Style="{StaticResource SubButton}" Command="{Binding AddShiftTypeCommand}"/>
+              <Button Content="選択行を削除" Style="{StaticResource SubButton}" Command="{Binding RemoveShiftTypeCommand}" Margin="8,0,0,0"/>
+            </StackPanel>
+          </StackPanel>
+
+          <DataGrid ItemsSource="{Binding ShiftTypes}" SelectedItem="{Binding SelectedShiftType}"
+                    Style="{StaticResource MasterGrid}">
+            <DataGrid.Columns>
+              <DataGridTextColumn Header="区分" Binding="{Binding Code}" Width="90"/>
+              <DataGridComboBoxColumn Header="種別" Width="200"
+                                      ItemsSource="{Binding Source={x:Static vm:ShiftKindChoice.All}}"
+                                      SelectedValueBinding="{Binding Kind}"
+                                      SelectedValuePath="Value" DisplayMemberPath="Label"/>
+              <DataGridTextColumn Header="備考(画面表示名)" Binding="{Binding Description}" Width="*"/>
+            </DataGrid.Columns>
+          </DataGrid>
+        </DockPanel>
+      </TabItem>
+
+      <!-- 所定労働時間マスタ -->
+      <TabItem Header="所定労働時間">
+        <DockPanel Margin="10">
+          <StackPanel DockPanel.Dock="Top">
+            <TextBlock Style="{StaticResource TabNote}"
+                       Text="所属部と時期で変わる1日の所定労働時間です。予定終了 = 予定開始 + 所定労働時間 + 休憩 で計算し、早退・時間外の基準になります。休憩は「所属部 × 期間 × 平日/土日祝」の3つで決まります。上の一覧に所属部とその既定の休憩を並べ、下の一覧で期間ごとの所定労働時間と休憩を入れます。期間の休憩を空欄にすると、その所属部の既定の休憩を使います。所属部は従業員マスタ(employee.xml)の所属部と同じ文字で書いてください。登録の無い所属部は、判定閾値マスタの拘束時間(9時間30分)で判定します。"/>
+          </StackPanel>
+
+          <Grid>
+            <Grid.RowDefinitions>
+              <RowDefinition Height="Auto"/>
+              <RowDefinition Height="150"/>
+              <RowDefinition Height="Auto"/>
+              <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,6">
+              <TextBlock Text="所属部" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,12,0"/>
+              <Button Content="行を追加" Style="{StaticResource SubButton}" Command="{Binding AddWorkingHoursDivisionCommand}"/>
+              <Button Content="選択行を削除" Style="{StaticResource SubButton}" Command="{Binding RemoveWorkingHoursDivisionCommand}" Margin="8,0,0,0"/>
+            </StackPanel>
+
+            <DataGrid Grid.Row="1" ItemsSource="{Binding WorkingHoursDivisions}"
+                      SelectedItem="{Binding SelectedWorkingHoursDivision}"
+                      Style="{StaticResource MasterGrid}">
+              <DataGrid.Columns>
+                <DataGridTextColumn Header="所属部" Binding="{Binding Name}" Width="*"/>
+                <DataGridTextColumn Header="既定の休憩 平日(分)" Binding="{Binding WeekdayBreak}" Width="150"/>
+                <DataGridTextColumn Header="既定の休憩 土日祝(分)" Binding="{Binding HolidayBreak}" Width="160"/>
+              </DataGrid.Columns>
+            </DataGrid>
+
+            <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,12,0,6">
+              <TextBlock Text="期間ごとの所定労働時間" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,12,0"/>
+              <Button Content="行を追加" Style="{StaticResource SubButton}" Command="{Binding AddWorkingHoursPeriodCommand}"/>
+              <Button Content="選択行を削除" Style="{StaticResource SubButton}" Command="{Binding RemoveWorkingHoursPeriodCommand}" Margin="8,0,0,0"/>
+              <TextBlock Text="開始・終了は「月/日」。終了が開始より前の行(10/16〜2/15)は年をまたぐ期間になります。所定の土日祝を空欄にすると平日と同じ時間です。休憩を空欄にすると、上の一覧の「既定の休憩」を使います。"
+                         Foreground="{StaticResource SubBrush}" FontSize="11" VerticalAlignment="Center" Margin="16,0,0,0"
+                         TextWrapping="Wrap"/>
+            </StackPanel>
+
+            <DataGrid Grid.Row="3" ItemsSource="{Binding WorkingHoursPeriods}"
+                      SelectedItem="{Binding SelectedWorkingHoursPeriod}"
+                      Style="{StaticResource MasterGrid}">
+              <DataGrid.Columns>
+                <DataGridTextColumn Header="所属部" Binding="{Binding Division}" Width="160"/>
+                <DataGridTextColumn Header="開始(月/日)" Binding="{Binding From}" Width="110"/>
+                <DataGridTextColumn Header="終了(月/日)" Binding="{Binding To}" Width="110"/>
+                <DataGridTextColumn Header="所定 平日(時間)" Binding="{Binding Weekday}" Width="130"/>
+                <DataGridTextColumn Header="所定 土日祝(時間)" Binding="{Binding Holiday}" Width="140"/>
+                <DataGridTextColumn Header="休憩 平日(分)" Binding="{Binding WeekdayBreak}" Width="120"/>
+                <DataGridTextColumn Header="休憩 土日祝(分)" Binding="{Binding HolidayBreak}" Width="*"/>
+              </DataGrid.Columns>
+            </DataGrid>
+          </Grid>
+        </DockPanel>
+      </TabItem>
+
+      <!-- 従業員マスタ -->
+      <TabItem Header="従業員">
+        <DockPanel Margin="10">
+          <StackPanel DockPanel.Dock="Top">
+            <TextBlock Style="{StaticResource TabNote}"
+                       Text="一番左の「管理区分」にチェックを付けた方だけを、この一覧・突合結果の一覧・帳票の対象にします。チェックを外した方は、シフト表や打刻データに載っていても対象外です(この一覧からも消えます。付け直すときは「対象外も表示」にチェックを入れてください)。氏名と所属部は必須です。所属部は所定労働時間マスタの引き当てキーで、「所定労働時間」タブの所属部と同じ文字にしてください。正社員の予定終了は所定労働時間マスタ、パート・アルバイトの予定終了は「1日の拘束時間」で決まります(空欄なら早退・時間外を判定しません)。時給はパート・アルバイト給与計算表の時給欄に出ます。※ このマスタは import-employees コマンドで作り直せます。時給と拘束時間は引き継ぎますが、それ以外の手直しは失われます。"/>
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+              <Button Content="行を追加" Style="{StaticResource SubButton}" Command="{Binding AddEmployeeCommand}"/>
+              <Button Content="選択行を削除" Style="{StaticResource SubButton}" Command="{Binding RemoveEmployeeCommand}" Margin="8,0,0,0"/>
+              <Button Content="全てのチェックを外す" Style="{StaticResource SubButton}" Command="{Binding UncheckAllEmployeesCommand}"
+                      Margin="8,0,0,0"
+                      ToolTip="全員の管理区分のチェックを外して、対象にする方を選び直します。一覧は「対象外も表示」に切り替わります。保存前なら「読み直す」で元に戻せます。"/>
+              <CheckBox Content="対象外も表示" IsChecked="{Binding ShowAllEmployees}"
+                        VerticalAlignment="Center" Margin="16,0,0,0"/>
+              <TextBlock Text="{Binding EmployeeCountText}" Foreground="{StaticResource SubBrush}"
+                         FontSize="11" VerticalAlignment="Center" Margin="16,0,0,0"/>
+            </StackPanel>
+          </StackPanel>
+
+          <DataGrid ItemsSource="{Binding EmployeesView}" SelectedItem="{Binding SelectedEmployee}"
+                    Style="{StaticResource MasterGrid}">
+            <DataGrid.Columns>
+              <DataGridTemplateColumn Header="管理区分" Width="70" SortMemberPath="Managed">
+                <DataGridTemplateColumn.CellTemplate>
+                  <DataTemplate>
+                    <CheckBox IsChecked="{Binding Managed, UpdateSourceTrigger=PropertyChanged}"
+                              Click="ManagedCheckBox_Click"
+                              HorizontalAlignment="Center" VerticalAlignment="Center"
+                              ToolTip="チェックを外すと、この方は画面と帳票の対象から外れます。"/>
+                  </DataTemplate>
+                </DataGridTemplateColumn.CellTemplate>
+              </DataGridTemplateColumn>
+              <DataGridTextColumn Header="社員番号" Binding="{Binding No}" Width="80"/>
+              <DataGridTextColumn Header="氏名(必須)" Binding="{Binding Name}" Width="150"/>
+              <DataGridTextColumn Header="所属部(必須)" Binding="{Binding Division}" Width="120"/>
+              <DataGridTextColumn Header="所属課" Binding="{Binding Department}" Width="110"/>
+              <DataGridComboBoxColumn Header="雇用区分" Width="110"
+                                      ItemsSource="{Binding Source={x:Static vm:StaffEmploymentChoice.All}}"
+                                      SelectedValueBinding="{Binding Employment}"
+                                      SelectedValuePath="Value" DisplayMemberPath="Label"/>
+              <DataGridTextColumn Header="部門(勤務地)" Binding="{Binding Pattern}" Width="*"/>
+              <DataGridTextColumn Header="1日の拘束時間" Binding="{Binding WorkHours}" Width="110"/>
+              <DataGridTextColumn Header="基本時給(円)" Binding="{Binding HourlyWage}" Width="100"/>
+              <DataGridTextColumn Header="入社日" Binding="{Binding Joined}" Width="100"/>
+              <DataGridTextColumn Header="退職日" Binding="{Binding Left}" Width="100"/>
+            </DataGrid.Columns>
+          </DataGrid>
+        </DockPanel>
+      </TabItem>
+
+      <!-- 祝日マスタ -->
+      <TabItem Header="祝日">
+        <DockPanel Margin="10">
+          <StackPanel DockPanel.Dock="Top">
+            <TextBlock Style="{StaticResource TabNote}"
+                       Text="祝日と休場日です。毎年同じ日で運用するため、年は持たず「月/日」だけで登録します(例 7/20)。祝日は土日と同じ扱いになり、所定労働時間は「土日祝」の値を使います。休場日はその日を対象外(グレー表示)にします。土日は自動で判定するため登録は不要です。※ 春分の日・秋分の日と、第◯月曜日の祝日(成人の日・海の日・敬老の日・スポーツの日)は年によって日付が動きます。年度が変わったら見直してください。"/>
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+              <Button Content="行を追加" Style="{StaticResource SubButton}" Command="{Binding AddHolidayCommand}"/>
+              <Button Content="選択行を削除" Style="{StaticResource SubButton}" Command="{Binding RemoveHolidayCommand}" Margin="8,0,0,0"/>
+            </StackPanel>
+          </StackPanel>
+
+          <DataGrid ItemsSource="{Binding Holidays}" SelectedItem="{Binding SelectedHoliday}"
+                    Style="{StaticResource MasterGrid}">
+            <DataGrid.Columns>
+              <DataGridTextColumn Header="月/日" Binding="{Binding Date}" Width="100"/>
+              <DataGridComboBoxColumn Header="区分" Width="220"
+                                      ItemsSource="{Binding Source={x:Static vm:HolidayKindChoice.All}}"
+                                      SelectedValueBinding="{Binding Kind}"
+                                      SelectedValuePath="Value" DisplayMemberPath="Label"/>
+              <DataGridTextColumn Header="名称・備考" Binding="{Binding Note}" Width="*"/>
+            </DataGrid.Columns>
+          </DataGrid>
+        </DockPanel>
+      </TabItem>
+
+      <!-- 判定閾値マスタ -->
+      <TabItem Header="判定閾値">
+        <DockPanel Margin="10">
+          <StackPanel DockPanel.Dock="Top">
+            <TextBlock Style="{StaticResource TabNote}"
+                       Text="遅刻・早退・早出・時間外の判定に使うしきい値です。すべて分で入力します。"/>
+          </StackPanel>
+
+          <StackPanel>
+            <Grid Margin="0,4,0,0">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="230"/>
+                <ColumnDefinition Width="90"/>
+                <ColumnDefinition Width="*"/>
+              </Grid.ColumnDefinitions>
+              <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+              </Grid.RowDefinitions>
+
+              <TextBlock Grid.Row="0" Grid.Column="0" Text="早出とみなす分" VerticalAlignment="Center" Margin="0,6"/>
+              <TextBox   Grid.Row="0" Grid.Column="1" Text="{Binding EarlyInMinutes, UpdateSourceTrigger=PropertyChanged}" Margin="0,6" Padding="4,2"/>
+              <TextBlock Grid.Row="0" Grid.Column="2" Text="予定開始より、この分数以上早い出勤を「早出」にします。" Foreground="{StaticResource SubBrush}" VerticalAlignment="Center" Margin="10,6"/>
+
+              <TextBlock Grid.Row="1" Grid.Column="0" Text="時間外とみなす分" VerticalAlignment="Center" Margin="0,6"/>
+              <TextBox   Grid.Row="1" Grid.Column="1" Text="{Binding OvertimeMinutes, UpdateSourceTrigger=PropertyChanged}" Margin="0,6" Padding="4,2"/>
+              <TextBlock Grid.Row="1" Grid.Column="2" Text="予定終了より、この分数以上遅い退勤を「時間外」にします。" Foreground="{StaticResource SubBrush}" VerticalAlignment="Center" Margin="10,6"/>
+
+              <TextBlock Grid.Row="2" Grid.Column="0" Text="遅刻・早退の許容(分)" VerticalAlignment="Center" Margin="0,6"/>
+              <TextBox   Grid.Row="2" Grid.Column="1" Text="{Binding ToleranceMinutes, UpdateSourceTrigger=PropertyChanged}" Margin="0,6" Padding="4,2"/>
+              <TextBlock Grid.Row="2" Grid.Column="2" Text="0 のとき、予定開始を1分でも過ぎれば遅刻になります。" Foreground="{StaticResource SubBrush}" VerticalAlignment="Center" Margin="10,6"/>
+
+              <TextBlock Grid.Row="3" Grid.Column="0" Text="予備の拘束時間(分)" VerticalAlignment="Center" Margin="0,6"/>
+              <TextBox   Grid.Row="3" Grid.Column="1" Text="{Binding FullTimeSpanMinutes, UpdateSourceTrigger=PropertyChanged}" Margin="0,6" Padding="4,2"/>
+              <TextBlock Grid.Row="3" Grid.Column="2" Text="所定労働時間マスタに登録の無い所属部だけで使います(570分 = 9時間30分)。" Foreground="{StaticResource SubBrush}" VerticalAlignment="Center" TextWrapping="Wrap" Margin="10,6"/>
+            </Grid>
+          </StackPanel>
+        </DockPanel>
+      </TabItem>
+
+      <!-- 休憩ルールマスタ -->
+      <TabItem Header="休憩ルール">
+        <DockPanel Margin="10">
+          <StackPanel DockPanel.Dock="Top">
+            <TextBlock Style="{StaticResource TabNote}"
+                       Text="給与計算表の実労働時間を出すためのルールです。打刻を丸めて拘束時間を求め、その長さに応じた休憩を引きます。画面の一覧・出席記録レポート・遅刻早退の判定には、丸めない実打刻を使います。"/>
+
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+              <TextBlock Text="丸めの単位(分)" VerticalAlignment="Center"/>
+              <TextBox Text="{Binding BreakUnitMinutes, UpdateSourceTrigger=PropertyChanged}" Width="60" Margin="8,0,0,0" Padding="4,2"/>
+              <TextBlock Text="出勤" VerticalAlignment="Center" Margin="20,0,0,0"/>
+              <ComboBox ItemsSource="{Binding Source={x:Static vm:RoundingChoice.All}}"
+                        SelectedValue="{Binding BreakInRounding}" SelectedValuePath="Value" DisplayMemberPath="Label"
+                        Width="110" Margin="8,0,0,0"/>
+              <TextBlock Text="退勤" VerticalAlignment="Center" Margin="20,0,0,0"/>
+              <ComboBox ItemsSource="{Binding Source={x:Static vm:RoundingChoice.All}}"
+                        SelectedValue="{Binding BreakOutRounding}" SelectedValuePath="Value" DisplayMemberPath="Label"
+                        Width="110" Margin="8,0,0,0"/>
+            </StackPanel>
+
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+              <TextBlock Text="拘束時間ごとの休憩" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,12,0"/>
+              <Button Content="行を追加" Style="{StaticResource SubButton}" Command="{Binding AddBreakBandCommand}"/>
+              <Button Content="選択行を削除" Style="{StaticResource SubButton}" Command="{Binding RemoveBreakBandCommand}" Margin="8,0,0,0"/>
+              <TextBlock Text="上限を空欄にした行が「それ以上すべて」になります。上から順に当てはめます。"
+                         Foreground="{StaticResource SubBrush}" FontSize="11" VerticalAlignment="Center" Margin="16,0,0,0"/>
+            </StackPanel>
+          </StackPanel>
+
+          <DataGrid ItemsSource="{Binding BreakBands}" SelectedItem="{Binding SelectedBreakBand}"
+                    Style="{StaticResource MasterGrid}">
+            <DataGrid.Columns>
+              <DataGridTextColumn Header="拘束時間の上限(時間)" Binding="{Binding UpToHours}" Width="180"/>
+              <DataGridTextColumn Header="休憩(分)" Binding="{Binding BreakMinutes}" Width="*"/>
+            </DataGrid.Columns>
+          </DataGrid>
+        </DockPanel>
+      </TabItem>
+
+      <!-- 申請書マスタ -->
+      <TabItem Header="申請書の対応">
+        <DockPanel Margin="10">
+          <StackPanel DockPanel.Dock="Top">
+            <TextBlock Style="{StaticResource TabNote}"
+                       Text="判定の結果に対して、どの申請書が必要かを決めます。1つの判定コードに複数の申請書を割り当てられます(行を分けて書きます)。「理由」は申請書の理由欄に出る文言です。"/>
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+              <Button Content="行を追加" Style="{StaticResource SubButton}" Command="{Binding AddApplicationFormCommand}"/>
+              <Button Content="選択行を削除" Style="{StaticResource SubButton}" Command="{Binding RemoveApplicationFormCommand}" Margin="8,0,0,0"/>
+            </StackPanel>
+          </StackPanel>
+
+          <DataGrid ItemsSource="{Binding ApplicationForms}" SelectedItem="{Binding SelectedApplicationForm}"
+                    Style="{StaticResource MasterGrid}">
+            <DataGrid.Columns>
+              <DataGridTextColumn Header="判定コード" Binding="{Binding Code}" Width="200"/>
+              <DataGridComboBoxColumn Header="申請書" Width="220"
+                                      ItemsSource="{Binding Source={x:Static vm:FormNameChoice.All}}"
+                                      SelectedValueBinding="{Binding FormName}"
+                                      SelectedValuePath="Value" DisplayMemberPath="Value"/>
+              <DataGridTextColumn Header="理由" Binding="{Binding Reason}" Width="*"/>
+            </DataGrid.Columns>
+          </DataGrid>
+        </DockPanel>
+      </TabItem>
+
+    </TabControl>
+  </DockPanel>
+</Window>

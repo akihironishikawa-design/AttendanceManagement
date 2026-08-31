@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  所定労働時間マスタ (統合仕様書 v3.0 第14.5章「変形労働・シーズン設定」/ 要確認 Q-02)
+
+  年間カレンダーの【部門別所定労働時間】を、所属部ごとに登録します。
+  時期によって1日の所定労働時間が変わるため、予定終了時刻もそれに合わせて動きます。
+
+      予定終了 = 予定開始 ＋ 所定労働時間 ＋ 休憩
+
+    例) 平日8H・休憩90分     → 予定開始 8:00 の日は 17:30 が退勤の下限
+        土日祝8.5H・休憩90分 → 予定開始 8:00 の日は 18:00
+
+  ■ 引き当て
+    従業員マスタ(employee.xml)の division(所属部)と、下の name を文字で突き合わせます。
+    シフト表や打刻データに書かれている部門(営業課・ハウス など)ではありません。
+    登録の無い所属部は、判定閾値マスタ(judgement_rule.xml)の拘束9時間30分で判定します。
+
+  ■ 書式
+    <division name="所属部" weekdayBreak="平日の休憩分" holidayBreak="土日祝の休憩分">
+      <period from="4/1" to="6/30" weekday="8" holiday="8.5"/>
+      <period from="7/1" to="9/15" weekday="7.5" holiday="8"
+              weekdayBreak="60" holidayBreak="45"/>    … 休憩もこの期間だけ変える場合
+      <period from="4/1" to="5/15" hours="8" breakMinutes="45"/>  … 平日・土日祝が同じ場合
+    </division>
+    ・period の from / to は「月/日」。年をまたぐ範囲(10/16〜2/15)も書けます。
+    ・weekday = 平日 / holiday = 土日祝 の所定労働時間(時間)。
+      土日祝の判定は営業カレンダー(calendar.xml)の祝日を見ます。
+    ・weekdayBreak / holidayBreak = 休憩(分)。平日と土日祝で分けて指定できます。
+      同じ場合は breakMinutes="90" のように1つ書けば両方に効きます。
+    ・画面の「マスタを編集」→「所定労働時間」タブでも編集できます。
+
+  ■ 休憩は「所属部 × 期間 × 平日/土日祝」の3つで決まります
+    ・division に書いた休憩 … その所属部の既定。期間で書いていない日に使います。
+    ・period   に書いた休憩 … その期間だけの上書き。書かなければ division の値を使います。
+    休憩が時期で変わらない所属部は、これまでどおり division にだけ書けば十分です。
+
+  ■ 現在の登録(従業員マスタに出てくる所属部と人数)
+      業務部       92 名 … 年間カレンダーの「業務部・総務部・食堂部」の値
+      食堂部       22 名 … 同上
+      総務部        4 名 … 同上
+      コース管理課   22 名 … 年間カレンダーの「コース管理部」の値(要確認 Q-02a)
+      コース管理部    1 名 … 年間カレンダーの「コース管理部」の値
+      管理部門       1 名 … 表に記載が無いため、業務部と同じ値(要確認 Q-02a)
+
+  【要確認 Q-02a】表に載っていない所属部
+    年間カレンダーの表に名前があるのは 業務部・総務部・食堂部・コース管理部 の4つです。
+    従業員データには「コース管理課」と「管理部門」も出てきます。
+    ・コース管理課 … コース管理部と同じ値を入れています
+    ・管理部門     … 業務部と同じ値を入れています
+    これで合っているかご確認ください。
+
+  【要確認 Q-02b】休憩時間
+    下記の90分は、現行の拘束9時間30分(= 所定8時間 + 休憩1時間30分)から逆算した値で、
+    平日・土日祝とも同じ値を入れてあります。
+    土日祝の休憩が違う場合は holidayBreak を書き換えてください。
+
+  【要確認 Q-02c】年度
+    年間カレンダーの表のヘッダが2011年度のままのため、下記は2026年度の記載として登録しています。
+    毎年同じ区切りで運用されている前提です(月日だけを見て判定します)。
+-->
+<workingHours>
+
+  <!-- 年間カレンダー【部門別所定労働時間】 業務部・総務部・食堂部 -->
+  <division name="業務部" weekdayBreak="90" holidayBreak="90">
+    <period from="4/1"  to="6/30"  weekday="8"   holiday="8.5"/>
+    <period from="7/1"  to="9/15"  weekday="7.5" holiday="8"/>
+    <period from="9/16" to="12/31" weekday="8"   holiday="8.5"/>
+    <period from="1/1"  to="2/28"  weekday="7.5" holiday="8"/>
+    <period from="3/1"  to="3/31"  weekday="8"   holiday="8.5"/>
+  </division>
+
+  <division name="総務部" weekdayBreak="90" holidayBreak="90">
+    <period from="4/1"  to="6/30"  weekday="8"   holiday="8.5"/>
+    <period from="7/1"  to="9/15"  weekday="7.5" holiday="8"/>
+    <period from="9/16" to="12/31" weekday="8"   holiday="8.5"/>
+    <period from="1/1"  to="2/28"  weekday="7.5" holiday="8"/>
+    <period from="3/1"  to="3/31"  weekday="8"   holiday="8.5"/>
+  </division>
+
+  <division name="食堂部" weekdayBreak="90" holidayBreak="90">
+    <period from="4/1"  to="6/30"  weekday="8"   holiday="8.5"/>
+    <period from="7/1"  to="9/15"  weekday="7.5" holiday="8"/>
+    <period from="9/16" to="12/31" weekday="8"   holiday="8.5"/>
+    <period from="1/1"  to="2/28"  weekday="7.5" holiday="8"/>
+    <period from="3/1"  to="3/31"  weekday="8"   holiday="8.5"/>
+  </division>
+
+  <!-- 年間カレンダー【部門別所定労働時間】 コース管理部(曜日によらず一律。区切りの日付も別) -->
+  <division name="コース管理部" weekdayBreak="90" holidayBreak="90">
+    <period from="4/1"   to="5/15"  hours="8"/>
+    <period from="5/16"  to="9/15"  hours="8.5"/>
+    <period from="9/16"  to="10/15" hours="8"/>
+    <period from="10/16" to="2/15"  hours="7.5"/>
+    <period from="2/16"  to="3/31"  hours="8"/>
+  </division>
+
+  <!-- 要確認 Q-02a コース管理部と同じ値を入れています -->
+  <division name="コース管理課" weekdayBreak="90" holidayBreak="90">
+    <period from="4/1"   to="5/15"  hours="8"/>
+    <period from="5/16"  to="9/15"  hours="8.5"/>
+    <period from="9/16"  to="10/15" hours="8"/>
+    <period from="10/16" to="2/15"  hours="7.5"/>
+    <period from="2/16"  to="3/31"  hours="8"/>
+  </division>
+
+  <!-- 要確認 Q-02a 年間カレンダーの表に記載が無いため、業務部と同じ値を入れています -->
+  <division name="管理部門" weekdayBreak="90" holidayBreak="90">
+    <period from="4/1"  to="6/30"  weekday="8"   holiday="8.5"/>
+    <period from="7/1"  to="9/15"  weekday="7.5" holiday="8"/>
+    <period from="9/16" to="12/31" weekday="8"   holiday="8.5"/>
+    <period from="1/1"  to="2/28"  weekday="7.5" holiday="8"/>
+    <period from="3/1"  to="3/31"  weekday="8"   holiday="8.5"/>
+  </division>
+
+</workingHours>

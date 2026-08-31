@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>TakaneAttendance.Cli</RootNamespace>
+    <!-- Core ロジックを UI なしで検証するための確認用コンソール。
+         Windows 以外でも動作するため、CI や回帰テストにも使える。 -->
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TakaneAttendance.Core\TakaneAttendance.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- *.sample.xml は実データを持たない見本のため、出力には配置しない -->
+    <None Include="..\..\masters\*.xml" Exclude="..\..\masters\*.sample.xml"
+          Link="masters\%(Filename)%(Extension)">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>

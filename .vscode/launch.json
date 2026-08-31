@@ -1,0 +1,33 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "勤怠突合 PoC (WPF)",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build",
+      "program": "${workspaceFolder}/src/TakaneAttendance.Wpf/bin/Debug/net8.0-windows/勤怠突合PoC.exe",
+      "cwd": "${workspaceFolder}/src/TakaneAttendance.Wpf/bin/Debug/net8.0-windows",
+      "console": "internalConsole",
+      "stopAtEntry": false
+    },
+    {
+      "name": "確認用コンソール (CLI・サンプルで突合)",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build",
+      "program": "${workspaceFolder}/src/TakaneAttendance.Cli/bin/Debug/net8.0/TakaneAttendance.Cli.dll",
+      "args": [
+        "run",
+        "${workspaceFolder}/sample/シフト表サンプル.xls",
+        "7月修正",
+        "${workspaceFolder}/sample/[インポート]タイムレコーダーデータ.xls",
+        "出席記録",
+        "--only-shift"
+      ],
+      "cwd": "${workspaceFolder}/src/TakaneAttendance.Cli/bin/Debug/net8.0",
+      "console": "integratedTerminal",
+      "stopAtEntry": false
+    }
+  ]
+}

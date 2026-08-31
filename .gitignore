@@ -1,0 +1,29 @@
+# ---- ビルド成果物 ----
+bin/
+obj/
+*.user
+*.suo
+
+# ---- お客様の実データ(実在の氏名・給与を含むため、リポジトリに置かない) ----
+Materials/
+sample/
+doc/
+out/
+out2/
+out3/
+/*.xlsx
+次のプロンプト.txt
+
+# ---- 発行物 ----
+# 76MB の単一ファイル exe と、その同梱物(masters・templates・SampleData)。
+# dotnet publish で作り直せるため管理しない。release\*.txt(納品文書)は管理する。
+release/勤怠突合PoC/
+release/*.zip
+
+# ---- 実在の社員名を含むマスタ ----
+# clone したあとは *.sample.xml を同じ名前で複製して使う(README「セットアップ」参照)
+masters/employee.xml
+masters/name_alias.xml
+
+# マスタ編集画面が上書き前に残す控え
+*.bak

@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  勤務区分マスタ (統合仕様書 v3.0 第8.3章・第17章)
+
+  シフト表のセルに文字で入る値の意味を定義する。
+  時刻(6:00 など)のセルは通常勤務の予定開始時刻として扱われるため、ここには書かない。
+
+  書式: <shiftType code="区分" kind="種別" description="備考"/>
+
+    kind は仕様書の6区分:
+      Work         通常勤務
+      DayOff       公休
+      PaidLeave    有給
+      BusinessTrip 出張 (打刻0件=終日 / 2件=半日 / 1件=打刻漏れ / 3件以上=要確認)
+      Other        その他 (欠勤・特別休暇など)
+      Excluded     対象外 (休場日・在籍外など。画面はグレー表示)
+
+    description は画面の区分選択に表示される(かっこ書きは表示時に落とす)。
+
+  公・有・出張・本部 はアプリの既定値としても持っているため、
+  このファイルが無くても動作する。ここに書いた内容が既定値を上書き・追加する。
+
+  未登録の値が現れた場合は「その他」として扱う(仕様書 13.2)。
+
+  【要確認 Q-04】勤務区分「その他」の内訳
+    欠勤・特別休暇などの区別が必要かどうかが未確定のため、
+    現在は「欠」「半」をまとめて Other として扱っています。
+    区別が必要な場合はお知らせください。
+-->
+<shiftTypes>
+
+  <shiftType code="公"    kind="DayOff"       description="公休"/>
+  <shiftType code="有"    kind="PaidLeave"    description="有給"/>
+  <shiftType code="出張"  kind="BusinessTrip" description="出張"/>
+  <shiftType code="本部"  kind="BusinessTrip" description="本部勤務"/>
+  <shiftType code="欠"    kind="Other"        description="その他(欠勤) 要確認 Q-04"/>
+  <shiftType code="特"    kind="Other"        description="その他(特別休暇) 要確認 Q-04"/>
+  <shiftType code="半"    kind="Other"        description="その他(半休) 要確認 Q-04"/>
+  <shiftType code="対象外" kind="Excluded"     description="対象外"/>
+
+  <!-- シフト表の集計式(COUNTIF)に現れる区分。実際の意味は要確認。 -->
+  <shiftType code="B7" kind="Work" description="要確認 シフト表の集計式に出現"/>
+  <shiftType code="F7" kind="Work" description="要確認 シフト表の集計式に出現"/>
+
+</shiftTypes>

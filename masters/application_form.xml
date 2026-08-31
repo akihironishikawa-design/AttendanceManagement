@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  申請書マスタ (勤怠締め業務フロー STEP1 ④「申請書を印刷」)
+
+  突合の判定結果から「その日にどの申請書が必要か」を導き、
+  申請書 確認一覧として出力するための対応表です。
+
+  現在は目視で差異を拾ってから申請書を用意していますが、
+  この一覧があれば、印刷すべき申請書と対象者・対象日をまとめて確認できます。
+
+  書式: <form code="判定コード" name="申請書名" reason="一覧に出す理由"/>
+    ・code   = 付録A の判定コード(NO_PUNCH など)
+    ・name   = 申請書の名称。TCC勤怠管理フォーマットのシート名に合わせています
+    ・reason = 一覧の「理由」欄に出す説明
+    ・同じ code に複数行を書くと、その日に必要な申請書が複数として出ます
+
+  申請書の様式は下記に収録されています。
+    TCC勤怠管理フォーマット最新（2026.4）.xls
+      … 特別休暇届 / 年次有休休暇・欠勤申請書 / 出張届 / タイムカード修正届出書
+    【申請書】勤怠管理簿（7月）.xlsx
+      … 勤怠管理簿(遅刻・早退・外出・残業・振替休日変更)
+
+  【要確認】対応づけはこちらで業務フローから起こした案です。
+    ・早出30分以上に申請書が要るか(現在は勤怠管理簿の対象にしています)
+    ・公休に打刻がある日は「振替休日変更」でよいか
+    ・勤務区分「その他」が欠勤か特別休暇かで申請書が変わるため、
+      内訳の確定(仕様書 要確認 Q-04)が必要です
+-->
+<applicationForms>
+
+  <!-- ■ 休暇・出張 … 判定は正常でも申請書の提出が必要な日 -->
+  <form code="PAID_LEAVE"         name="年次有休休暇・欠勤申請書" reason="有給"/>
+  <form code="PAID_LEAVE_PUNCH"   name="年次有休休暇・欠勤申請書" reason="有給"/>
+  <form code="PAID_LEAVE_PUNCH"   name="タイムカード修正届出書"   reason="有給日に打刻あり"/>
+
+  <form code="OTHER"              name="年次有休休暇・欠勤申請書" reason="その他(欠勤・特別休暇)"/>
+  <form code="OTHER_PUNCH"        name="年次有休休暇・欠勤申請書" reason="その他(欠勤・特別休暇)"/>
+  <form code="OTHER_PUNCH"        name="タイムカード修正届出書"   reason="その他の日に打刻あり"/>
+
+  <form code="BUSINESS_TRIP_FULL" name="出張届" reason="終日出張"/>
+  <form code="BUSINESS_TRIP_HALF" name="出張届" reason="半日出張"/>
+
+  <!-- ■ 打刻の不備 … タイムカード修正届出書 -->
+  <form code="NO_PUNCH"           name="タイムカード修正届出書" reason="打刻漏れ(0件または1件)"/>
+  <form code="MULTI_PUNCH"        name="タイムカード修正届出書" reason="打刻が3件以上"/>
+  <form code="NO_SHIFT_PUNCH"     name="タイムカード修正届出書" reason="シフトなしの日に打刻あり"/>
+  <form code="DAY_OFF_PUNCH"      name="勤怠管理簿"             reason="公休に打刻あり(振替休日変更)"/>
+
+  <!-- ■ 勤務時間の差異 … 勤怠管理簿(遅刻・早退・外出・残業) -->
+  <form code="LATE"               name="勤怠管理簿" reason="遅刻"/>
+  <form code="EARLY_LEAVE"        name="勤怠管理簿" reason="早退"/>
+  <form code="EARLY_IN_30"        name="勤怠管理簿" reason="早出30分以上"/>
+
+  <!-- 氏名未解決・入力異常は申請書ではなくデータの修正で対応するため、ここには書きません。 -->
+
+</applicationForms>

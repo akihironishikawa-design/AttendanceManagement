@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<employees>
+  <!--
+  従業員マスタ の見本 (統合仕様書 v3.0 第10.4章・第17章)
+
+  実在の社員名を含む employee.xml はリポジトリに含めていません。
+  このファイルを employee.xml という名前で複製し、実際の登録に置き換えてください。
+  お客様の「従業員データ.xlsx」があれば、import-employees コマンドで作り直せます。
+
+  書式: <employee no="社員番号" name="氏名" division="所属部" department="所属課"
+                 employment="雇用区分" pattern="部門(勤務地)" workHours="9:00"
+                 hourlyWage="1200" joined="入社日" left="退職日" managed="true"/>
+
+    name(氏名) と division(所属部) は必須です。
+    division は所定労働時間マスタ(working_hours.xml)の引き当てキーで、
+    working_hours.xml 側にも同じ文字を書いてください。
+
+    employment = 正社員 / パート / アルバイト
+    workHours  = 1日の拘束時間(休憩込み)。パート・アルバイトの予定終了 = 予定開始 + この時間
+    hourlyWage = 基本時給(円)。パート・アルバイト給与計算表の時給欄
+    managed    = 管理区分。true の方だけを突合結果の一覧と帳票に出す(省略時は true)
+
+  下の社員はすべて架空の人物です。
+-->
+  <employee no="9001" name="山田 太郎"  division="業務部"       department="業務Ⅰ課" employment="正社員"     pattern="ハウス" joined="2020-04-01" managed="true" />
+  <employee no="9002" name="佐藤 花子"  division="業務部"       department="競技課"   employment="正社員"     pattern="ハウス" joined="2018-09-16" managed="true" />
+  <employee no="9003" name="鈴木 一郎"  division="総務部"       department="総務課"   employment="正社員"     pattern="ハウス" joined="2015-04-01" managed="true" />
+  <employee no="9004" name="田中 美咲"  division="食堂部"       department="食堂課"   employment="パート"     pattern="ハウス" workHours="6:00" hourlyWage="1100" joined="2022-06-01" managed="true" />
+  <employee no="9005" name="高橋 健二"  division="コース管理部" department=""         employment="アルバイト" pattern="コース" workHours="8:00" hourlyWage="1050" joined="2023-04-16" managed="true" />
+  <employee no="9006" name="伊藤 由美"  division="業務部"       department="会員課"   employment="パート"     pattern="ハウス" workHours="5:30" hourlyWage="1150" joined="2021-11-01" managed="false" />
+</employees>

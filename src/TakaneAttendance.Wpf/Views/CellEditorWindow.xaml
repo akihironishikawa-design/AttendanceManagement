@@ -1,0 +1,122 @@
+﻿<Window x:Class="TakaneAttendance.Wpf.Views.CellEditorWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="セルの編集" Width="340" Height="820"
+        WindowStyle="ToolWindow" ResizeMode="NoResize" ShowInTaskbar="False"
+        WindowStartupLocation="Manual" Background="White"
+        FontFamily="Yu Gothic UI, Meiryo UI" FontSize="12">
+
+  <Window.Resources>
+    <Style x:Key="SectionHead" TargetType="TextBlock">
+      <Setter Property="FontWeight" Value="Bold"/>
+      <Setter Property="Foreground" Value="{StaticResource Blue900}"/>
+      <Setter Property="Margin" Value="0,0,0,4"/>
+    </Style>
+  </Window.Resources>
+
+  <DockPanel Margin="14,12,14,12">
+
+    <!-- 見出し -->
+    <StackPanel DockPanel.Dock="Top">
+      <TextBlock x:Name="TitleText" FontWeight="Bold" FontSize="13"
+                 Foreground="{StaticResource Blue900}" TextWrapping="Wrap"/>
+      <TextBlock x:Name="CurrentText" Foreground="{StaticResource SubBrush}" FontSize="11"
+                 Margin="0,3,0,0" TextWrapping="Wrap"/>
+      <Border x:Name="NoteBox" Background="{StaticResource ReviewBg}" BorderBrush="#E8D3AE"
+              BorderThickness="1" CornerRadius="3" Padding="8,5" Margin="0,6,0,0" Visibility="Collapsed">
+        <TextBlock x:Name="NoteText" FontSize="11" TextWrapping="Wrap"/>
+      </Border>
+    </StackPanel>
+
+    <!-- 操作ボタン -->
+    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,12,0,0">
+      <Button Content="空にする" Style="{StaticResource SubButton}" Click="Clear_Click"/>
+      <Button Content="OK" Style="{StaticResource PrimaryButton}" Click="Ok_Click"
+              IsDefault="True" MinWidth="76" Margin="14,0,6,0"/>
+      <Button Content="キャンセル" Style="{StaticResource SubButton}" IsCancel="True" MinWidth="76"/>
+    </StackPanel>
+
+    <!-- 打刻(実績)。原則そのままで、申請書の提出を確認したときだけ直せる(仕様書 v3.0 第8.3章) -->
+    <StackPanel DockPanel.Dock="Bottom" Margin="0,12,0,0">
+      <TextBlock Text="打刻(実績)" Style="{StaticResource SectionHead}"/>
+      <Border Background="#F5F7F9" BorderBrush="{StaticResource LineBrush}" BorderThickness="1"
+              CornerRadius="3" Padding="10,7">
+        <StackPanel>
+          <TextBlock x:Name="PunchText" FontFamily="Consolas, Yu Gothic UI" FontSize="13"/>
+
+          <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+            <TextBlock Text="出勤" Width="34" VerticalAlignment="Center"/>
+            <ComboBox x:Name="InHour" Width="62" IsEditable="True" MaxDropDownHeight="220" Margin="0,2" IsEnabled="False"/>
+            <TextBlock Text=":" Margin="5,0" FontWeight="Bold" VerticalAlignment="Center"/>
+            <ComboBox x:Name="InMinute" Width="62" IsEditable="True" MaxDropDownHeight="220" Margin="0,2" IsEnabled="False"/>
+          </StackPanel>
+          <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+            <TextBlock Text="退勤" Width="34" VerticalAlignment="Center"/>
+            <ComboBox x:Name="OutHour" Width="62" IsEditable="True" MaxDropDownHeight="220" Margin="0,2" IsEnabled="False"/>
+            <TextBlock Text=":" Margin="5,0" FontWeight="Bold" VerticalAlignment="Center"/>
+            <ComboBox x:Name="OutMinute" Width="62" IsEditable="True" MaxDropDownHeight="220" Margin="0,2" IsEnabled="False"/>
+          </StackPanel>
+
+          <Button x:Name="UnlockPunchButton" Content="申請書提出確認済み" Style="{StaticResource SubButton}"
+                  Click="UnlockPunch_Click" HorizontalAlignment="Left" Margin="0,8,0,0"
+                  ToolTip="タイムカード修正届出書などの提出を確認したら押してください。打刻(実績)を直せるようになります。"/>
+
+          <TextBlock x:Name="PunchHintText" Foreground="{StaticResource SubBrush}" FontSize="11"
+                     Margin="0,6,0,0" TextWrapping="Wrap"
+                     Text="打刻はタイムレコーダーの原値のため、そのままでは変更できません。申請書の提出を確認したら「申請書提出確認済み」を押してください。"/>
+        </StackPanel>
+      </Border>
+    </StackPanel>
+
+    <!-- 備考(修正理由・申請書の確認結果) -->
+    <StackPanel DockPanel.Dock="Bottom" Margin="0,10,0,0">
+      <TextBlock Text="備考" Style="{StaticResource SectionHead}"/>
+      <TextBox x:Name="NoteInput" Height="46" TextWrapping="Wrap" AcceptsReturn="True"
+               VerticalScrollBarVisibility="Auto"/>
+    </StackPanel>
+
+    <!-- 予定終了時刻 -->
+    <StackPanel DockPanel.Dock="Bottom" Margin="0,10,0,0">
+      <TextBlock Text="シフト(予定)の終了時刻" Style="{StaticResource SectionHead}"/>
+      <StackPanel Orientation="Horizontal">
+        <TextBlock Text="終了" Width="34"/>
+        <ComboBox x:Name="EndHour" Width="62" IsEditable="True" MaxDropDownHeight="220" Margin="0,2"/>
+        <TextBlock Text=":" Margin="5,0" FontWeight="Bold"/>
+        <ComboBox x:Name="EndMinute" Width="62" IsEditable="True" MaxDropDownHeight="220" Margin="0,2"/>
+      </StackPanel>
+      <TextBlock x:Name="EndHintText" Foreground="{StaticResource SubBrush}" FontSize="11"
+                 Margin="0,4,0,0" TextWrapping="Wrap"/>
+    </StackPanel>
+
+    <!-- シフト(予定) -->
+    <StackPanel DockPanel.Dock="Bottom" Margin="0,10,0,0">
+      <TextBlock Text="シフト(予定)の開始時刻" Style="{StaticResource SectionHead}"/>
+      <StackPanel Orientation="Horizontal">
+        <TextBlock Text="開始" Width="34"/>
+        <ComboBox x:Name="StartHour" Width="62" IsEditable="True" MaxDropDownHeight="220" Margin="0,2"/>
+        <TextBlock Text=":" Margin="5,0" FontWeight="Bold"/>
+        <ComboBox x:Name="StartMinute" Width="62" IsEditable="True" MaxDropDownHeight="220" Margin="0,2"/>
+      </StackPanel>
+      <TextBlock Foreground="{StaticResource SubBrush}" FontSize="11" Margin="0,4,0,0" TextWrapping="Wrap"
+                 Text="勤務区分と開始時刻はどちらか一方を使います。分の一覧は5分刻みですが、直接入力もできます。"/>
+    </StackPanel>
+
+    <!-- 勤務区分 -->
+    <DockPanel Margin="0,12,0,0">
+      <TextBlock DockPanel.Dock="Top" Text="シフト(予定)の勤務区分" Style="{StaticResource SectionHead}"/>
+      <ListBox x:Name="CodeList" SelectionChanged="CodeList_SelectionChanged"
+               MouseDoubleClick="CodeList_MouseDoubleClick"
+               BorderBrush="{StaticResource LineBrush}">
+        <ListBox.ItemTemplate>
+          <DataTemplate>
+            <StackPanel Orientation="Horizontal" Margin="2">
+              <TextBlock Text="{Binding Label}" FontWeight="Bold" Width="52"/>
+              <TextBlock Text="{Binding Detail}" Foreground="{StaticResource SubBrush}"/>
+            </StackPanel>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+    </DockPanel>
+
+  </DockPanel>
+</Window>

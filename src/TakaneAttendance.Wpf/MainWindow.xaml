@@ -1,0 +1,518 @@
+﻿<Window x:Class="TakaneAttendance.Wpf.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:TakaneAttendance.Wpf.ViewModels"
+        Title="勤怠突合 PoC — 高根カントリー倶楽部様 勤怠締め処理支援システム"
+        Height="820" Width="1360" WindowStartupLocation="CenterScreen"
+        Background="#EEF2F6" FontFamily="Yu Gothic UI, Meiryo UI" FontSize="12"
+        AllowDrop="True" PreviewDragOver="Window_PreviewDragOver" PreviewDragLeave="Window_PreviewDragLeave"
+        Drop="Window_Drop" Closing="Window_Closing">
+
+  <Window.DataContext>
+    <vm:MainViewModel/>
+  </Window.DataContext>
+
+  <DockPanel>
+
+    <!-- ================= ステータスバー ================= -->
+    <Border DockPanel.Dock="Bottom" Background="{StaticResource Blue900}" Padding="12,6">
+      <TextBlock Text="{Binding StatusText}" Foreground="#DCE8F5" FontSize="11"/>
+    </Border>
+
+    <!-- ================= 入力エリア(画面のどこにでもファイルをドロップできる) ================= -->
+    <Border x:Name="InputArea" DockPanel.Dock="Top" Background="White" BorderBrush="{StaticResource LineBrush}"
+            BorderThickness="0,0,0,1" Padding="16,12">
+      <Grid>
+        <Grid.RowDefinitions>
+          <RowDefinition Height="Auto"/>
+          <RowDefinition Height="Auto"/>
+          <RowDefinition Height="Auto"/>
+          <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="Auto"/>
+          <ColumnDefinition Width="*"/>
+          <ColumnDefinition Width="Auto"/>
+          <ColumnDefinition Width="Auto"/>
+          <ColumnDefinition Width="220"/>
+          <ColumnDefinition Width="Auto"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- シフト表 -->
+        <Label Grid.Row="0" Grid.Column="0" Content="シフト表" FontWeight="Bold"/>
+        <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding ShiftPath, UpdateSourceTrigger=PropertyChanged}"
+                 Margin="0,3" Padding="6,4" VerticalContentAlignment="Center"
+                 Tag="Shift" AllowDrop="True" PreviewDragOver="PathBox_PreviewDragOver" PreviewDrop="PathBox_PreviewDrop"
+                 ToolTip="Excel ファイルをここにドラッグ＆ドロップできます。"/>
+        <Button Grid.Row="0" Grid.Column="2" Content="参照..." Style="{StaticResource SubButton}"
+                Command="{Binding BrowseShiftCommand}" Margin="6,3"/>
+        <Label Grid.Row="0" Grid.Column="3" Content="シート"/>
+        <ComboBox Grid.Row="0" Grid.Column="4" ItemsSource="{Binding ShiftSheets}"
+                  SelectedItem="{Binding SelectedShiftSheet}" Margin="0,3" Padding="4"/>
+
+        <!-- 打刻データ -->
+        <Label Grid.Row="1" Grid.Column="0" Content="打刻データ" FontWeight="Bold"/>
+        <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding PunchPath, UpdateSourceTrigger=PropertyChanged}"
+                 Margin="0,3" Padding="6,4" VerticalContentAlignment="Center"
+                 Tag="Punch" AllowDrop="True" PreviewDragOver="PathBox_PreviewDragOver" PreviewDrop="PathBox_PreviewDrop"
+                 ToolTip="Excel ファイルをここにドラッグ＆ドロップできます。"/>
+        <Button Grid.Row="1" Grid.Column="2" Content="参照..." Style="{StaticResource SubButton}"
+                Command="{Binding BrowsePunchCommand}" Margin="6,3"/>
+        <Label Grid.Row="1" Grid.Column="3" Content="シート"/>
+        <ComboBox Grid.Row="1" Grid.Column="4" ItemsSource="{Binding PunchSheets}"
+                  SelectedItem="{Binding SelectedPunchSheet}" Margin="0,3" Padding="4"/>
+
+        <!-- 帳票テンプレートは出力するときに指定する -->
+
+        <!-- 実行ボタン -->
+        <Button Grid.Row="0" Grid.Column="5" Grid.RowSpan="3" Content="突合実行"
+                Style="{StaticResource PrimaryButton}" Command="{Binding RunCommand}"
+                Margin="14,3,0,3" MinWidth="130" FontSize="14"/>
+
+        <!-- オプション -->
+        <StackPanel Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="6" Orientation="Horizontal" Margin="0,8,0,0">
+          <CheckBox Content="対象年月をファイルから自動判定" IsChecked="{Binding AutoDetectYearMonth}"
+                    VerticalAlignment="Center" Margin="0,0,14,0"/>
+          <ComboBox ItemsSource="{Binding Years}" SelectedItem="{Binding TargetYear}" Width="80"
+                    IsEnabled="{Binding AutoDetectYearMonth, Converter={StaticResource InverseBool}}"/>
+          <TextBlock Text="年" Margin="4,0,8,0"/>
+          <ComboBox ItemsSource="{Binding Months}" SelectedItem="{Binding TargetMonth}" Width="60"
+                    IsEnabled="{Binding AutoDetectYearMonth, Converter={StaticResource InverseBool}}"/>
+          <TextBlock Text="月" Margin="4,0,20,0"/>
+          <CheckBox Content="シフト表に載っている社員のみ対象にする" IsChecked="{Binding OnlyPersonsInShift}"
+                    VerticalAlignment="Center" Margin="0,0,20,0"
+                    ToolTip="シフト表が一部門のみの場合、他部門の打刻が「シフトなし打刻」として大量に出るのを防ぎます。"/>
+          <Button Content="マスタを編集" Style="{StaticResource SubButton}" Click="EditMasters_Click"
+                  ToolTip="従業員・社員名の別名・勤務区分・所定労働時間・祝日・申請書・判定閾値・休憩ルールを画面で修正します。"/>
+          <Button Content="マスタ フォルダを開く" Style="{StaticResource SubButton}"
+                  Command="{Binding OpenMastersCommand}" Margin="8,0,0,0"/>
+        </StackPanel>
+
+        <!-- 共通メニュー(仕様書 v3.0 第6章 UI-002)。行を増やさないよう、この行の右端に置く -->
+        <StackPanel Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="6" Orientation="Horizontal"
+                    HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,8,0,0">
+          <Button Content="設定" Style="{StaticResource SubButton}"
+                  Command="{Binding OpenMastersCommand}" Margin="0,0,6,0"
+                  ToolTip="マスタ・設定のフォルダを開きます。"/>
+          <Button Content="ヘルプ" Style="{StaticResource SubButton}" Click="Help_Click" Margin="0,0,6,0"/>
+          <Button Content="終了" Style="{StaticResource SubButton}" Click="Exit_Click"/>
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <!-- ================= サマリー ================= -->
+    <Border DockPanel.Dock="Top" Background="{StaticResource Blue050}" Padding="16,6"
+            BorderBrush="{StaticResource LineBrush}" BorderThickness="0,0,0,1">
+      <StackPanel>
+        <TextBlock Text="{Binding SummaryText}" FontWeight="Bold" Foreground="{StaticResource Blue900}"
+                   FontSize="12.5" Margin="0,0,0,5"/>
+        <StackPanel Orientation="Horizontal">
+          <Border Background="White" BorderBrush="{StaticResource LineBrush}" BorderThickness="1"
+                  CornerRadius="5" Padding="11,4" Margin="0,0,7,0">
+            <StackPanel>
+              <TextBlock Text="対象人数" FontSize="11" Foreground="{StaticResource SubBrush}"/>
+              <TextBlock Text="{Binding PersonCount}" FontSize="16" FontWeight="Bold"/>
+            </StackPanel>
+          </Border>
+          <Border Background="White" BorderBrush="{StaticResource LineBrush}" BorderThickness="1"
+                  CornerRadius="5" Padding="11,4" Margin="0,0,7,0">
+            <StackPanel>
+              <TextBlock Text="明細件数" FontSize="11" Foreground="{StaticResource SubBrush}"/>
+              <TextBlock Text="{Binding DetailCount}" FontSize="16" FontWeight="Bold"/>
+            </StackPanel>
+          </Border>
+          <!-- 正常と時間外はセルも白のため、タイルも白のままにする -->
+          <Border Background="White" BorderBrush="{StaticResource LineBrush}" BorderThickness="1"
+                  CornerRadius="5" Padding="11,4" Margin="0,0,7,0">
+            <StackPanel>
+              <TextBlock Text="正常" FontSize="11" Foreground="{StaticResource SubBrush}"/>
+              <TextBlock Text="{Binding NormalCount}" FontSize="16" FontWeight="Bold"/>
+            </StackPanel>
+          </Border>
+          <!-- 時間外は正常のとなりに置く。申請書や帳票には出さず、件数の確認だけに使う。 -->
+          <Border Background="White" BorderBrush="{StaticResource LineBrush}" BorderThickness="1"
+                  CornerRadius="5" Padding="11,4" Margin="0,0,7,0">
+            <StackPanel>
+              <TextBlock Text="時間外" FontSize="11" Foreground="{StaticResource SubBrush}"/>
+              <TextBlock Text="{Binding OvertimeCount}" FontSize="16" FontWeight="Bold"/>
+            </StackPanel>
+          </Border>
+          <!-- 主判定ごとの件数。背景色は仕様書 v3.0 第15.1章の指定色。 -->
+          <Border Background="#F4CCCC" BorderBrush="#E0AFAF" BorderThickness="1"
+                  CornerRadius="5" Padding="11,4" Margin="0,0,7,0">
+            <StackPanel>
+              <TextBlock Text="遅刻" FontSize="11" Foreground="#9E3B3B"/>
+              <TextBlock Text="{Binding LateCount}" FontSize="16" FontWeight="Bold" Foreground="#9E3B3B"/>
+            </StackPanel>
+          </Border>
+          <Border Background="#D9EAD3" BorderBrush="#B7D3AE" BorderThickness="1"
+                  CornerRadius="5" Padding="11,4" Margin="0,0,7,0">
+            <StackPanel>
+              <TextBlock Text="早退" FontSize="11" Foreground="#3D6B33"/>
+              <TextBlock Text="{Binding EarlyLeaveCount}" FontSize="16" FontWeight="Bold" Foreground="#3D6B33"/>
+            </StackPanel>
+          </Border>
+          <Border Background="#FCE5CD" BorderBrush="#E7C8A5" BorderThickness="1"
+                  CornerRadius="5" Padding="11,4" Margin="0,0,7,0">
+            <StackPanel>
+              <TextBlock Text="早出" FontSize="11" Foreground="#95601A"/>
+              <TextBlock Text="{Binding EarlyInCount}" FontSize="16" FontWeight="Bold" Foreground="#95601A"/>
+            </StackPanel>
+          </Border>
+          <Border Background="#E4D7F5" BorderBrush="#C9B6E4" BorderThickness="1"
+                  CornerRadius="5" Padding="11,4" Margin="0,0,7,0">
+            <StackPanel>
+              <TextBlock Text="要確認" FontSize="11" Foreground="#5B3E92"/>
+              <TextBlock Text="{Binding ReviewCount}" FontSize="16" FontWeight="Bold" Foreground="#5B3E92"/>
+            </StackPanel>
+          </Border>
+
+          <Button Content="出席記録レポートを出力" Style="{StaticResource PrimaryButton}"
+                  Click="ExportAttendanceReport_Click" VerticalAlignment="Center" Margin="14,0,0,0"
+                  ToolTip="この画面に表示されている内容(編集後の値)をテンプレートに書き込んで出力します。シフト表と同じフォルダに「年月_日時」のフォルダを作って出力します。"/>
+
+          <Button Content="出勤簿を出力" Style="{StaticResource PrimaryButton}"
+                  Click="ExportAttendanceBook_Click" VerticalAlignment="Center" Margin="10,0,0,0"
+                  ToolTip="画面に表示されている勤務区分(公・有・欠 など)を、出勤簿の様式に書き出します。様式はアプリに同梱しているものを使います。"/>
+
+          <Button Content="給与計算表を出力" Style="{StaticResource PrimaryButton}"
+                  Click="ExportPartTimePayroll_Click" VerticalAlignment="Center" Margin="10,0,0,0"
+                  ToolTip="パート・アルバイトの給与計算表を出力します(1人1シート)。対象者と時給は「マスタを編集」のパート・アルバイトタブで設定します。"/>
+
+          <Button Content="申請書出力へ" Style="{StaticResource PrimaryButton}"
+                  Click="OpenApplicationTab_Click" VerticalAlignment="Center" Margin="10,0,0,0"
+                  ToolTip="申請書 確認一覧を出力する画面へ移ります。"/>
+        </StackPanel>
+      </StackPanel>
+    </Border>
+
+    <!-- ================= 結果タブ ================= -->
+    <TabControl x:Name="MainTabs" Margin="16,12,16,12" Background="White" BorderBrush="{StaticResource LineBrush}">
+
+      <!-- 出席記録レポート(帳票と同じレイアウトで編集する) -->
+      <TabItem Header="出席記録レポート(編集可)">
+        <DockPanel>
+          <Border DockPanel.Dock="Top" Background="{StaticResource Blue050}"
+                  BorderBrush="{StaticResource LineBrush}" BorderThickness="0,0,0,1" Padding="12,8">
+            <StackPanel>
+              <TextBlock Text="{Binding ReportSummaryText}" FontWeight="Bold"
+                         Foreground="{StaticResource Blue900}" FontSize="12"/>
+
+              <!-- ページング・絞り込み・保留(1行にまとめる) -->
+              <DockPanel Margin="0,6,0,0" LastChildFill="False">
+
+                <!-- 保留の操作は右端に固定して、幅が足りなくても隠れないようにする -->
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                  <Button Content="保留(作業途中を保存)" Style="{StaticResource SubButton}"
+                          Command="{Binding SaveDraftCommand}"
+                          ToolTip="編集中の内容と修正履歴を「作業データ\勤怠突合状況.xlsx」に保存します。保存先は聞きません。上書き前の内容は .bak として残ります。"/>
+                  <Button Content="保留を開く" Command="{Binding OpenDraftCommand}" Margin="6,0,0,0"
+                          ToolTip="「作業データ\勤怠突合状況.xlsx」を開いて続きから編集します。判定はそのときのマスタで計算し直します。">
+                    <Button.Style>
+                      <Style TargetType="Button" BasedOn="{StaticResource SubButton}">
+                        <Style.Triggers>
+                          <DataTrigger Binding="{Binding HasDraftFile}" Value="True">
+                            <Setter Property="Background" Value="#E8880C"/>
+                            <Setter Property="FontWeight" Value="Bold"/>
+                          </DataTrigger>
+                        </Style.Triggers>
+                      </Style>
+                    </Button.Style>
+                  </Button>
+                  <Button Content="編集を元に戻す" Style="{StaticResource SubButton}"
+                          Command="{Binding ResetReportEditsCommand}" Margin="6,0,0,0"
+                          ToolTip="保留したあとの編集を破棄して、保留ファイルの内容に戻します。"/>
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal">
+                <TextBlock Text="{Binding DisplayCountText}" VerticalAlignment="Center"
+                           Foreground="{StaticResource SubBrush}" Margin="0,0,12,0"/>
+                <Button Content="|&lt;" Style="{StaticResource SubButton}" Click="PageFirst_Click" MinWidth="34"/>
+                <Button Content="&lt;"  Style="{StaticResource SubButton}" Click="PagePrev_Click"  MinWidth="34" Margin="4,0,0,0"/>
+                <TextBlock Text="{Binding PageText}" VerticalAlignment="Center" Margin="10,0"
+                           MinWidth="52" TextAlignment="Center"/>
+                <Button Content="&gt;"  Style="{StaticResource SubButton}" Click="PageNext_Click"  MinWidth="34"/>
+                <Button Content="&gt;|" Style="{StaticResource SubButton}" Click="PageLast_Click"  MinWidth="34" Margin="4,0,0,0"/>
+
+                <TextBlock Text="1ページの表示件数:" Margin="16,0,6,0" VerticalAlignment="Center"/>
+                <ComboBox ItemsSource="{Binding PageSizeChoices}" SelectedItem="{Binding PageSize}"
+                          Width="70" VerticalAlignment="Center"/>
+
+                <!-- 絞り込み(仕様書 v3.0 第8.2章)。行を増やさないよう、ページングと同じ行に置く -->
+                <RadioButton Content="全て" GroupName="ReportFilter" Tag="All" IsChecked="True"
+                             Checked="ReportFilter_Checked" VerticalAlignment="Center" Margin="20,0,10,0"
+                             ToolTip="すべての社員を表示します。"/>
+                <RadioButton Content="打刻データなし" GroupName="ReportFilter" Tag="NoPunch"
+                             Checked="ReportFilter_Checked" VerticalAlignment="Center" Margin="0,0,10,0"
+                             ToolTip="採用打刻が0件または1件の日を含む社員だけを表示します。"/>
+                <RadioButton Content="色付きセル" GroupName="ReportFilter" Tag="Colored"
+                             Checked="ReportFilter_Checked" VerticalAlignment="Center" Margin="0,0,16,0"
+                             ToolTip="正常でない日を含む社員だけを表示します。"/>
+
+                <TextBlock Text="検索:" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                <TextBox Text="{Binding ReportSearchText, UpdateSourceTrigger=PropertyChanged}" Width="140"
+                         Padding="6,3" VerticalContentAlignment="Center"
+                         ToolTip="氏名・部門・社員番号で絞り込みます"/>
+
+                </StackPanel>
+              </DockPanel>
+            </StackPanel>
+          </Border>
+
+          <!-- 列(日付)の本数は対象月で変わるため ReportGridBuilder が生成する -->
+          <DataGrid x:Name="ReportGrid" ItemsSource="{Binding ReportRowsView}"
+                    AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False"
+                    CanUserSortColumns="False" CanUserReorderColumns="False" CanUserResizeRows="False"
+                    SelectionUnit="Cell" SelectionMode="Extended"
+                    GridLinesVisibility="All" HeadersVisibility="Column" RowHeaderWidth="0"
+                    BorderThickness="0" FontSize="13" RowHeight="72"
+                    HorizontalGridLinesBrush="{StaticResource LineBrush}"
+                    VerticalGridLinesBrush="{StaticResource LineBrush}"
+                    EnableRowVirtualization="True" EnableColumnVirtualization="True"
+                    VirtualizingPanel.IsVirtualizing="True"
+                    PreviewMouseDoubleClick="ReportGrid_PreviewMouseDoubleClick"
+                    PreviewKeyDown="ReportGrid_PreviewKeyDown">
+            <DataGrid.ColumnHeaderStyle>
+              <Style TargetType="DataGridColumnHeader">
+                <Setter Property="Background" Value="{StaticResource Blue700}"/>
+                <Setter Property="Foreground" Value="White"/>
+                <Setter Property="FontWeight" Value="Bold"/>
+                <Setter Property="Padding" Value="4,3"/>
+                <Setter Property="HorizontalContentAlignment" Value="Center"/>
+                <Setter Property="BorderBrush" Value="#4A7FB5"/>
+                <Setter Property="BorderThickness" Value="0,0,1,0"/>
+              </Style>
+            </DataGrid.ColumnHeaderStyle>
+
+            <!-- 社員ブロックごとに背景色を変えて、シフト行と打刻行の対を分かりやすくする -->
+            <DataGrid.RowStyle>
+              <Style TargetType="DataGridRow">
+                <Setter Property="Background" Value="White"/>
+                <Style.Triggers>
+                  <DataTrigger Binding="{Binding IsAlternateBlock}" Value="True">
+                    <Setter Property="Background" Value="#F5F9FD"/>
+                  </DataTrigger>
+                  <DataTrigger Binding="{Binding HasMatchingData}" Value="False">
+                    <Setter Property="Foreground" Value="#95A3B1"/>
+                  </DataTrigger>
+                </Style.Triggers>
+              </Style>
+            </DataGrid.RowStyle>
+          </DataGrid>
+        </DockPanel>
+      </TabItem>
+
+      <!-- 突合結果 -->
+      <TabItem Header="突合結果">
+        <DockPanel>
+          <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="10,10,10,6">
+            <CheckBox Content="要確認・警告・エラーのみ表示" IsChecked="{Binding ShowOnlyIssues}"
+                      VerticalAlignment="Center" Margin="0,0,20,0"/>
+            <TextBlock Text="絞り込み:" Margin="0,0,6,0"/>
+            <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" Width="220"
+                     Padding="6,4" ToolTip="氏名・部門・判定で絞り込みます"/>
+          </StackPanel>
+
+          <DataGrid ItemsSource="{Binding DetailsView}" AutoGenerateColumns="False" IsReadOnly="True"
+                    CanUserSortColumns="True" GridLinesVisibility="All" HeadersVisibility="Column"
+                    RowHeaderWidth="0" BorderThickness="0" FontSize="12"
+                    HorizontalGridLinesBrush="{StaticResource LineBrush}"
+                    VerticalGridLinesBrush="{StaticResource LineBrush}"
+                    EnableRowVirtualization="True" VirtualizingPanel.IsVirtualizing="True">
+            <DataGrid.ColumnHeaderStyle>
+              <Style TargetType="DataGridColumnHeader">
+                <Setter Property="Background" Value="{StaticResource Blue700}"/>
+                <Setter Property="Foreground" Value="White"/>
+                <Setter Property="FontWeight" Value="Bold"/>
+                <Setter Property="Padding" Value="8,6"/>
+                <Setter Property="BorderBrush" Value="#4A7FB5"/>
+                <Setter Property="BorderThickness" Value="0,0,1,0"/>
+              </Style>
+            </DataGrid.ColumnHeaderStyle>
+
+            <!-- 主判定で行を色分けする(仕様書 v3.0 第15.1章の指定色) -->
+            <DataGrid.RowStyle>
+              <Style TargetType="DataGridRow">
+                <Setter Property="Background" Value="White"/>
+                <Style.Triggers>
+                  <!-- 時間外は帳票に載せないため、正常と同じ白のままにする -->
+                  <DataTrigger Binding="{Binding JudgementName}" Value="早出">
+                    <Setter Property="Background" Value="#FCE5CD"/>
+                  </DataTrigger>
+                  <DataTrigger Binding="{Binding JudgementName}" Value="早退">
+                    <Setter Property="Background" Value="#D9EAD3"/>
+                  </DataTrigger>
+                  <DataTrigger Binding="{Binding JudgementName}" Value="遅刻">
+                    <Setter Property="Background" Value="#F4CCCC"/>
+                  </DataTrigger>
+                  <DataTrigger Binding="{Binding JudgementName}" Value="要確認">
+                    <Setter Property="Background" Value="#E4D7F5"/>
+                  </DataTrigger>
+                  <DataTrigger Binding="{Binding JudgementName}" Value="対象外">
+                    <Setter Property="Background" Value="#E7E6E6"/>
+                  </DataTrigger>
+                </Style.Triggers>
+              </Style>
+            </DataGrid.RowStyle>
+
+            <DataGrid.Columns>
+              <DataGridTextColumn Header="判定"   Binding="{Binding JudgementName}"     Width="60"/>
+              <DataGridTextColumn Header="日付"   Binding="{Binding DateText}"         Width="90"/>
+              <DataGridTextColumn Header="曜"     Binding="{Binding DayOfWeekText}"    Width="34"/>
+              <DataGridTextColumn Header="氏名"   Binding="{Binding PersonName}"       Width="130"/>
+              <DataGridTextColumn Header="部門"   Binding="{Binding Department}"       Width="120"/>
+              <DataGridTextColumn Header="シフト" Binding="{Binding ShiftText}"        Width="70"/>
+              <DataGridTextColumn Header="予定開始" Binding="{Binding PlannedStartText}" Width="70"/>
+              <DataGridTextColumn Header="予定終了" Binding="{Binding PlannedEndText}"   Width="70"/>
+              <DataGridTextColumn Header="実出勤" Binding="{Binding ActualInText}"     Width="70"/>
+              <DataGridTextColumn Header="実退勤" Binding="{Binding ActualOutText}"    Width="70"/>
+              <!-- 15分丸めと休憩の自動計算(B-04 / B-05)。break_rule.xml の設定で変わる -->
+              <DataGridTextColumn Header="丸め後" Binding="{Binding RoundedRangeText}" Width="110"/>
+              <DataGridTextColumn Header="拘束"   Binding="{Binding SpanText}"         Width="56"/>
+              <DataGridTextColumn Header="休憩"   Binding="{Binding BreakText}"        Width="56"/>
+              <DataGridTextColumn Header="実労働" Binding="{Binding WorkText}"         Width="62"/>
+              <DataGridTextColumn Header="差分"   Binding="{Binding DiffText}"         Width="150"/>
+              <DataGridTextColumn Header="判定内容" Binding="{Binding ResultText}"      Width="*"/>
+              <DataGridTextColumn Header="打刻原文" Binding="{Binding PunchRawText}"    Width="110"/>
+            </DataGrid.Columns>
+          </DataGrid>
+        </DockPanel>
+      </TabItem>
+
+      <!-- 氏名未解決 -->
+      <TabItem Header="氏名未解決">
+        <DockPanel>
+          <Border DockPanel.Dock="Top" Background="{StaticResource ErrorBg}" Padding="12,8" Margin="10,10,10,0">
+            <StackPanel>
+              <TextBlock TextWrapping="Wrap" FontSize="12">
+                シフト表と打刻データで氏名が一致せず、正式氏名に解決できなかったものです。
+                <LineBreak/>
+                行を選んで「マスタに登録」(行のダブルクリックでも可)を押すと、正式氏名を選ぶだけで別名マスタに登録できます。
+              </TextBlock>
+              <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                <Button Content="マスタに登録" Style="{StaticResource PrimaryButton}" Click="RegisterAlias_Click"
+                        IsEnabled="{Binding SelectedUnresolved, Converter={StaticResource NotNull}}"
+                        ToolTip="選んだ氏名の正式氏名を選び、別名マスタ(name_alias.xml)に登録します。"/>
+                <Button Content="マスタを編集" Style="{StaticResource SubButton}" Click="EditMasters_Click" Margin="8,0,0,0"
+                        ToolTip="別名・勤務区分・パート勤務パターン・所定労働時間をまとめて修正します。"/>
+                <Button Content="この一覧をXMLに書き出す" Style="{StaticResource SubButton}"
+                        Command="{Binding ExportUnresolvedCommand}" Margin="8,0,0,0"/>
+              </StackPanel>
+            </StackPanel>
+          </Border>
+          <DataGrid ItemsSource="{Binding UnresolvedNames}" AutoGenerateColumns="False" IsReadOnly="True"
+                    SelectedItem="{Binding SelectedUnresolved, Mode=TwoWay}" SelectionMode="Single"
+                    MouseDoubleClick="UnresolvedGrid_MouseDoubleClick"
+                    Margin="10" GridLinesVisibility="All" HeadersVisibility="Column" RowHeaderWidth="0"
+                    BorderThickness="1" BorderBrush="{StaticResource LineBrush}">
+            <DataGrid.ColumnHeaderStyle>
+              <Style TargetType="DataGridColumnHeader">
+                <Setter Property="Background" Value="{StaticResource Blue700}"/>
+                <Setter Property="Foreground" Value="White"/>
+                <Setter Property="FontWeight" Value="Bold"/>
+                <Setter Property="Padding" Value="8,6"/>
+              </Style>
+            </DataGrid.ColumnHeaderStyle>
+            <DataGrid.Columns>
+              <DataGridTextColumn Header="出現元"   Binding="{Binding Origin}"         Width="110"/>
+              <DataGridTextColumn Header="氏名(原文)" Binding="{Binding SourceName}"    Width="160"/>
+              <DataGridTextColumn Header="正規化後" Binding="{Binding NormalizedName}"  Width="160"/>
+              <DataGridTextColumn Header="部門"     Binding="{Binding Department}"      Width="140"/>
+              <DataGridTextColumn Header="作業番号" Binding="{Binding EmployeeNo}"      Width="90"/>
+              <DataGridTextColumn Header="件数"     Binding="{Binding Occurrences}"     Width="70"/>
+              <DataGridTextColumn Header="XML追記例" Binding="{Binding SuggestedXmlLine}" Width="*"/>
+            </DataGrid.Columns>
+          </DataGrid>
+        </DockPanel>
+      </TabItem>
+
+      <!-- 処理ログ -->
+      <!-- ================= 申請書出力(業務フロー STEP1 ④) ================= -->
+      <TabItem Header="申請書出力" x:Name="ExportTab">
+        <DockPanel Margin="12">
+
+          <!-- 申請書の種類と一括操作 -->
+          <Border DockPanel.Dock="Top" Background="{StaticResource Blue050}"
+                  BorderBrush="{StaticResource LineBrush}" BorderThickness="1" Padding="12,10" Margin="0,0,0,10">
+            <StackPanel>
+              <TextBlock Text="提出が必要な申請書" FontWeight="Bold" FontSize="13"
+                         Foreground="{StaticResource Blue900}"/>
+              <TextBlock Margin="0,4,0,0" TextWrapping="Wrap" FontSize="11"
+                         Foreground="{StaticResource SubBrush}"
+                         Text="突合の判定から、申請書の提出が必要な人を申請書ごとに出します。申請書を選ぶと一覧が切り替わります。チェックを付けた人の分だけ、氏名・所属・勤怠情報を書き込んだ申請書(Excel)を出力します。勤怠管理簿だけは順番が違い、回収した申請書をもとに画面で勤怠を修正したあと、その修正した日だけを社員1名につき1枚で出力します。"/>
+
+              <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                <ItemsControl ItemsSource="{Binding Forms.Kinds}" VerticalAlignment="Center">
+                  <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate><StackPanel Orientation="Horizontal"/></ItemsPanelTemplate>
+                  </ItemsControl.ItemsPanel>
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                      <RadioButton GroupName="ApplicationFormKind" Content="{Binding Label}" Margin="0,0,18,0"
+                                   IsChecked="{Binding IsSelected, Mode=TwoWay}" VerticalAlignment="Center"/>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <Button Content="すべて選択" Style="{StaticResource SubButton}" Click="SelectAllForms_Click" Margin="10,0,0,0"/>
+                <Button Content="すべて解除" Style="{StaticResource SubButton}" Click="ClearAllForms_Click" Margin="6,0,0,0"/>
+              </StackPanel>
+            </StackPanel>
+          </Border>
+
+          <!-- 出力の案内とボタン -->
+          <Border DockPanel.Dock="Bottom" BorderBrush="{StaticResource LineBrush}" BorderThickness="1"
+                  Padding="12,10" Margin="0,10,0,0">
+            <DockPanel>
+              <Button DockPanel.Dock="Right" Content="チェックした申請書を出力" Style="{StaticResource PrimaryButton}"
+                      Click="ExportApplicationForms_Click" MinWidth="190" VerticalAlignment="Center" Margin="12,0,0,0"
+                      ToolTip="申請書ごとに1つの Excel ファイルを作ります。1シートに2枚並び、3枚以上は2枚ずつ下に足します。"/>
+              <TextBlock Text="{Binding Forms.SummaryText}" TextWrapping="Wrap" VerticalAlignment="Center"
+                         Foreground="{StaticResource SubBrush}" FontSize="12"/>
+            </DockPanel>
+          </Border>
+
+          <!-- 対象者の一覧(1行が申請書1枚) -->
+          <DataGrid ItemsSource="{Binding Forms.Rows}" AutoGenerateColumns="False"
+                    CanUserAddRows="False" CanUserSortColumns="True" HeadersVisibility="Column"
+                    RowHeaderWidth="0" GridLinesVisibility="Horizontal" BorderThickness="1"
+                    BorderBrush="{StaticResource LineBrush}" FontSize="12" RowHeight="30"
+                    HorizontalGridLinesBrush="{StaticResource LineBrush}">
+            <DataGrid.Columns>
+              <DataGridTemplateColumn Header="出力" Width="44" CanUserSort="True"
+                                      SortMemberPath="Selected">
+                <DataGridTemplateColumn.CellTemplate>
+                  <DataTemplate>
+                    <CheckBox IsChecked="{Binding Selected, UpdateSourceTrigger=PropertyChanged}"
+                              HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                  </DataTemplate>
+                </DataGridTemplateColumn.CellTemplate>
+              </DataGridTemplateColumn>
+              <DataGridTextColumn Header="氏名"       Binding="{Binding PersonName}" Width="130" IsReadOnly="True"/>
+              <DataGridTextColumn Header="部門"       Binding="{Binding Department}" Width="110" IsReadOnly="True"/>
+              <DataGridTextColumn Header="社員番号"   Binding="{Binding EmployeeNo}" Width="80"  IsReadOnly="True"/>
+              <DataGridTextColumn Header="対象日"     Binding="{Binding DateText}"   Width="180" IsReadOnly="True"/>
+              <DataGridTextColumn Header="日数"       Binding="{Binding DaysText}"   Width="60"  IsReadOnly="True"/>
+              <DataGridTextColumn Header="理由"       Binding="{Binding Reason}"     Width="200" IsReadOnly="True"/>
+              <DataGridTextColumn Header="予定シフト" Binding="{Binding ShiftText}"  Width="100" IsReadOnly="True"/>
+              <DataGridTextColumn Header="打刻"       Binding="{Binding PunchText}"  Width="*"   IsReadOnly="True"/>
+            </DataGrid.Columns>
+          </DataGrid>
+
+        </DockPanel>
+      </TabItem>
+
+      <TabItem Header="処理ログ">
+        <ListBox ItemsSource="{Binding Messages}" Margin="10" FontFamily="Consolas, MS Gothic" FontSize="12"
+                 BorderBrush="{StaticResource LineBrush}" ScrollViewer.HorizontalScrollBarVisibility="Auto">
+          <ListBox.ItemTemplate>
+            <DataTemplate>
+              <TextBlock Text="{Binding}" TextWrapping="Wrap"/>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+      </TabItem>
+
+    </TabControl>
+  </DockPanel>
+</Window>
